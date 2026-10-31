@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RepoIntel • 3D Neural Repository Visualizer</title>
+    <meta name="description" content="Hyper-minimalist futuristic 3D WebGL repository intelligence graph with glassmorphic heads-up display." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Gracefully handle Vite HMR WebSockets in iframe / preview cloud environments
+      (function() {
+        if (typeof window === 'undefined') return;
+
+        // Suppress unhandled rejection / error events related to Vite HMR WebSocket
+        window.addEventListener('unhandledrejection', function(event) {
+          const msg = event?.reason?.message || (typeof event?.reason === 'string' ? event.reason : '');
+          if (msg && (msg.includes('WebSocket') || msg.includes('vite:ws'))) {
+            event.preventDefault();
+            if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+          }
+        });
+        window.addEventListener('error', function(event) {
+          const msg = event?.message || event?.error?.message || '';
+          if (msg && (msg.includes('WebSocket') || msg.includes('vite:ws'))) {
+            event.preventDefault();
+            if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+          }
+        });
+
+        // Intercept Vite HMR WebSocket connections to eliminate "WebSocket closed without opened"
+        const NativeWebSocket = window.WebSocket;
+        if (!NativeWebSocket) return;
+
+        window.WebSocket = function(url, protocols) {
+          const isViteHmr =
+            (typeof protocols === 'string' && (protocols.includes('vite-hmr') || protocols === 'vite-ping')) ||
+            (Array.isArray(protocols) && (protocols.includes('vite-hmr') || protocols.includes('vite-ping'))) ||
+            (typeof url === 'string' && (url.includes('vite-hmr') || url.includes(':24678') || url.includes('token=')));
+
+          if (isViteHmr) {
+            const listeners = { open: [], message: [], close: [], error: [] };
+            const socket = {
+              CONNECTING: 0,
+              OPEN: 1,
+              CLOSING: 2,
+              CLOSED: 3,
+              readyState: 0,
+              protocol: typeof protocols === 'string' ? protocols : (protocols?.[0] || 'vite-hmr'),
+              url: String(url),
+              extensions: '',
+              bufferedAmount: 0,
+              binaryType: 'blob',
+              onopen: null,
+              onmessage: null,
+              onclose: null,
+              onerror: null,
+              addEventListener: function(type, fn) {
+                if (listeners[type]) listeners[type].push(fn);
+              },
+              removeEventListener: function(type, fn) {
+                if (listeners[type]) {
+                  listeners[type] = listeners[type].filter(function(f) { return f !== fn; });
+                }
+              },
+              dispatchEvent: function(evt) {
+                const type = evt.type;
+                if (listeners[type]) {
+                  listeners[type].forEach(function(fn) {
+                    try { fn.call(socket, evt); } catch (e) { /* ignore */ }
+                  });
+                }
+                const handler = socket['on' + type];
+                if (typeof handler === 'function') {
+                  try { handler.call(socket, evt); } catch (e) { /* ignore */ }
+                }
+                return true;
+              },
+              send: function() {
+                // No-op for Vite ping/heartbeats in iframe preview
+              },
+              close: function() {
+                socket.readyState = 3;
+                socket.dispatchEvent(new Event('close'));
+              }
+            };
+
+            // Transition to OPEN on next microtask so listeners can attach first
+            queueMicrotask(function() {
+              socket.readyState = 1;
+              socket.dispatchEvent(new Event('open'));
+            });
+
+            return socket;
+          }
+
+          return new NativeWebSocket(url, protocols);
+        };
+
+        window.WebSocket.prototype = NativeWebSocket.prototype;
+        window.WebSocket.CONNECTING = NativeWebSocket.CONNECTING;
+        window.WebSocket.OPEN = NativeWebSocket.OPEN;
+        window.WebSocket.CLOSING = NativeWebSocket.CLOSING;
+        window.WebSocket.CLOSED = NativeWebSocket.CLOSED;
+      })();
+    </script>
+  </head>
+  <body class="bg-[#09090b] text-[#f4f4f5] antialiased overflow-hidden select-none">
+    <div id="root" class="w-full h-full"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
